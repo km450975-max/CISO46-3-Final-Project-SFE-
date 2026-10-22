@@ -87,7 +87,66 @@ The server tests cover registration, bad passwords, invalid login, protected rou
 
 Players open the splash screen, then register or log in, and use the dashboard, game, leaderboard, profile, history, and settings. Private pages redirect to login. The admin screen has no menu link. A student who opens `/admin` sees the ordinary not-found page. The API still returns 403 for a signed-in student.
 
-A game can be 3, 4, or 5 rounds, with base points of 10, 20, or 30. Omitting those fields on `POST /games/start` still defaults to 10 rounds and the difficulty's base points. Ranked mode updates the career score. Practice mode does not. Scoring, events, identity, and the HTTP contract are described in:
+A game can be 3, 4, or 5 rounds, with base points of 10, 20, or 30. Omitting those fields on `POST /games/start` still defaults to 10 rounds and the difficulty's base points. Ranked mode updates the career score. Practice mode does not. Quit abandons the session, so it cannot be resumed. Points already awarded stay on the career total.
+
+## Version control
+
+The project is a Git repository. `main` is the stable branch and holds the full application. `develop` is the integration branch. Feature work was committed on its own branch and merged back with a merge commit, so the history shows where each part came from.
+
+Published repository: <https://github.com/km450975-max/CISO46-3-Final-Project>
+
+| Branch | What that branch contains |
+| --- | --- |
+| `main` | The full game: client, scoring, leaderboard, admin, Postman collection, and docs |
+| `feature/authentication` | Registration, login, logout, password hashing, and the session cookie |
+| `feature/api-integration` | Authentication plus the Banana Game API adapter (live and mock) |
+| `feature/event-system` | Authentication, the Banana API adapter, and the event bus with its handlers |
+
+Other local feature branches used while building the game are `feature/puzzle-engine`, `feature/leaderboard`, and `feature/client`. The command sequence is in [docs/git-workflow.md](docs/git-workflow.md). Do not commit `server/.env`.
+
+## Event-driven architecture
+
+The game service does not update the score by itself. It publishes events, and separate handlers do the work. The bus is `server/src/events/eventBus.js`. It is an in-process `EventEmitter`: listeners run inside this Node process, in the order they were registered, and the HTTP response is sent only after the score handler finishes.
+
+When a student submits an answer, the server emits:
+
+1. `answer.submitted`
+2. `answer.correct`, `answer.incorrect`, or `round.expired`
+3. `score.updated`, `streak.updated`, and `round.completed`
+4. `leaderboard.updated` when a ranked game changes the career total
+
+Registration emits `user.registered`. Login emits `user.logged_in`. Loading a round emits `puzzle.loaded`. An activity handler stores each event for the admin screen. A failure to write that log does not undo the score.
+
+This is not a separate message queue. Events are not replayed after a restart. The unique index on a round stops a second submit from awarding points twice.
+
+## Interoperability
+
+Three systems work together through explicit contracts.
+
+| From | To | Contract |
+| --- | --- | --- |
+| React client | This Express API | JSON at `/api/v1`, session cookie, and `X-Requested-With: XMLHttpRequest` on changes |
+| This API | Banana Game API | `GET https://marcconrad.com/uob/banana/api.php?out=json`, which returns an image URL and an integer solution |
+| Postman or Newman | This Express API | The collection in `postman/banana-math.postman_collection.json` |
+
+The browser never calls the Banana API and never receives the solution before the round is saved. The adapter in `server/src/services/banana` is the only code that talks to that service. Puzzle images are proxied by this server, and only `sanfoh.com` and `marcconrad.com` over HTTPS are allowed. `mock` mode returns labelled local SVG cards so tests do not pretend to be the live service.
+
+The route list, status codes, and Postman steps are in [docs/api-documentation.md](docs/api-documentation.md).
+
+## Virtual identity
+
+Each person is an account stored in MongoDB. The MongoDB user id is the primary key. Username and email are unique, but they are not the key.
+
+A profile holds the id, username, email, display name, avatar, theme, role, account status, join date, career score, streaks, games played, puzzles solved, badges, and rank. The password hash and the token version are never sent to the browser. On the leaderboard the public identity is the username and display name.
+
+Roles:
+
+- **Student**: play, edit display name, avatar, and theme, and read the leaderboard and personal history.
+- **Administrator**: read counts, activity, and Banana API health, and suspend or restore accounts. There is no Admin item in the menu. Only an administrator who opens `/admin` directly sees the panel.
+
+Login stores a JWT in an HttpOnly cookie named `access_token`. The token carries the user id and a token version. Every request loads the user from the database and uses the role stored there. Logout, a password change, or an admin account change increments the token version, so older cookies stop working. `Authorization: Bearer` is also accepted.
+
+## Further detail
 
 - [docs/architecture.md](docs/architecture.md)
 - [docs/api-documentation.md](docs/api-documentation.md)
@@ -110,7 +169,3 @@ See `.env.example`. Never commit `server/.env`.
 | `BANANA_API_KEY` | Optional. Empty for the public API |
 | `BCRYPT_ROUNDS` | Password hashing cost |
 | `ADMIN_EMAIL` / `ADMIN_PASSWORD` | Optional first administrator |
-
-## Version control
-
-`main` is the stable branch and `develop` is the integration branch. Feature work belongs on `feature/authentication`, `feature/puzzle-engine`, `feature/leaderboard`, `feature/event-system`, and `feature/api-integration`. The exact commands are in [docs/git-workflow.md](docs/git-workflow.md). Do not claim the code is on GitHub unless `git remote -v` shows a remote and `git push` succeeded.
