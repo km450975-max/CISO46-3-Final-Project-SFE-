@@ -1,0 +1,15 @@
+{
+  "name": "banana-math-puzzle",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Banana Math Puzzle Challenge, a full-stack educational puzzle game.",
+  "scripts": {
+    "install:all": "npm install --prefix server && npm install --prefix client",
+    "dev": "concurrently -n server,client -c yellow,blue \"npm run dev --prefix server\" \"npm run dev --prefix client\"",
+    "test": "npm test --prefix server && npm test --prefix client",
+    "start": "npm start --prefix server"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}
