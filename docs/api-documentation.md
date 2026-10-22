@@ -168,7 +168,7 @@ If the Banana API times out, returns HTML, or returns a solution that is not an 
 
 `postman/banana-math.postman_collection.json` calls every route above and checks the status, the `success` flag, and the fields that must stay hidden. `postman/build-collection.mjs` regenerates that file.
 
-Copy `postman/local.postman_environment.example.json` to `postman/local.postman_environment.json` and set `adminEmail` and `adminPassword` to `ADMIN_EMAIL` and `ADMIN_PASSWORD` from `server/.env`. The local environment file is gitignored. The API must already be running.
+Copy `postman/local.postman_environment.example.json` to `postman/local.postman_environment.json`. The administrator login uses the collection variables `seedAdminEmail` (`admin@school.test`) and `seedAdminPassword` (`Admin1234`), which match `server/.env`. The local environment file is gitignored. The API must already be running.
 
 ```powershell
 npm run postman

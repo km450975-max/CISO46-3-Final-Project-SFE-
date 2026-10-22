@@ -8,6 +8,14 @@
     {
       "key": "baseUrl",
       "value": "http://127.0.0.1:5000/api/v1"
+    },
+    {
+      "key": "seedAdminEmail",
+      "value": "admin@school.test"
+    },
+    {
+      "key": "seedAdminPassword",
+      "value": "Admin1234"
     }
   ],
   "event": [
@@ -56,10 +64,25 @@
           "name": "Me without a session",
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer not-a-session"
+              }
+            ],
             "url": "{{baseUrl}}/auth/me"
           },
           "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const jar = pm.cookies.jar();",
+                  "jar.clear(pm.request.url, function () {});"
+                ]
+              }
+            },
             {
               "listen": "test",
               "script": {
@@ -154,7 +177,7 @@
             "url": "{{baseUrl}}/auth/login",
             "body": {
               "mode": "raw",
-              "raw": "{\"email\":\"{{adminEmail}}\",\"password\":\"wrong-password\"}"
+              "raw": "{\"email\":\"{{seedAdminEmail}}\",\"password\":\"wrong-password\"}"
             }
           },
           "event": [
@@ -961,7 +984,7 @@
             "url": "{{baseUrl}}/auth/login",
             "body": {
               "mode": "raw",
-              "raw": "{\"email\":\"{{adminEmail}}\",\"password\":\"{{adminPassword}}\"}"
+              "raw": "{\"email\":\"{{seedAdminEmail}}\",\"password\":\"{{seedAdminPassword}}\"}"
             }
           },
           "event": [
@@ -973,8 +996,8 @@
                   "pm.test('status 200', function () { pm.response.to.have.status(200); });",
                   "const payload = pm.response.json();",
                   "pm.test('success envelope', function () { pm.expect(payload.success).to.eql(true); pm.expect(payload.data).to.be.an('object'); });",
-                  "pm.test('administrator session', function () { pm.expect(payload.data.user.role).to.eql('admin'); });",
-                  "pm.collectionVariables.set('adminId', payload.data.user.id);"
+                  "pm.test('administrator session', function () { pm.expect(payload.data && payload.data.user && payload.data.user.role).to.eql('admin'); });",
+                  "if (payload.data && payload.data.user) pm.collectionVariables.set('adminId', payload.data.user.id);"
                 ]
               }
             }

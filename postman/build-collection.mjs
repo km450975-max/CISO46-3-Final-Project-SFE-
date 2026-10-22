@@ -4,21 +4,22 @@ import { fileURLToPath } from 'node:url';
 
 const root = dirname(fileURLToPath(import.meta.url));
 
-function item(name, method, path, { body, tests, csrf = method !== 'GET' } = {}) {
-  const headers = [];
-  if (csrf) headers.push({ key: 'X-Requested-With', value: 'XMLHttpRequest' });
-  if (body !== undefined) headers.push({ key: 'Content-Type', value: 'application/json' });
+function item(name, method, path, { body, tests, csrf = method !== 'GET', headers = [], prerequest = [] } = {}) {
+  const requestHeaders = [...headers];
+  if (csrf) requestHeaders.push({ key: 'X-Requested-With', value: 'XMLHttpRequest' });
+  if (body !== undefined) requestHeaders.push({ key: 'Content-Type', value: 'application/json' });
   const request = {
     method,
-    header: headers,
+    header: requestHeaders,
     url: `{{baseUrl}}${path}`,
   };
   if (body !== undefined) request.body = { mode: 'raw', raw: body };
-  return {
-    name,
-    request,
-    event: [{ listen: 'test', script: { type: 'text/javascript', exec: tests } }],
-  };
+  const event = [];
+  if (prerequest.length) {
+    event.push({ listen: 'prerequest', script: { type: 'text/javascript', exec: prerequest } });
+  }
+  event.push({ listen: 'test', script: { type: 'text/javascript', exec: tests } });
+  return { name, request, event };
 }
 
 function expectStatus(code) {
@@ -151,8 +152,8 @@ const tests = {
   adminLogin: [
     expectStatus(200),
     ...expectSuccess(),
-    "pm.test('administrator session', function () { pm.expect(payload.data.user.role).to.eql('admin'); });",
-    "pm.collectionVariables.set('adminId', payload.data.user.id);",
+    "pm.test('administrator session', function () { pm.expect(payload.data && payload.data.user && payload.data.user.role).to.eql('admin'); });",
+    "if (payload.data && payload.data.user) pm.collectionVariables.set('adminId', payload.data.user.id);",
   ],
   adminStats: [
     expectStatus(200),
@@ -207,6 +208,8 @@ const collection = {
   },
   variable: [
     { key: 'baseUrl', value: 'http://127.0.0.1:5000/api/v1' },
+    { key: 'seedAdminEmail', value: 'admin@school.test' },
+    { key: 'seedAdminPassword', value: 'Admin1234' },
   ],
   event: [{
     listen: 'prerequest',
@@ -225,10 +228,17 @@ const collection = {
   item: [
     { name: 'Public and rejected calls', item: [
       item('Health', 'GET', '/health', { tests: tests.health }),
-      item('Me without a session', 'GET', '/auth/me', { tests: tests.unauthenticated }),
+      item('Me without a session', 'GET', '/auth/me', {
+        tests: tests.unauthenticated,
+        headers: [{ key: 'Authorization', value: 'Bearer not-a-session' }],
+        prerequest: [
+          'const jar = pm.cookies.jar();',
+          'jar.clear(pm.request.url, function () {});',
+        ],
+      }),
       item('Register with an empty body', 'POST', '/auth/register', { body: '{}', tests: tests.validation }),
       item('Register without the browser header', 'POST', '/auth/register', { body: '{"username":"abc","email":"a@b.co","password":"Testpass1"}', tests: tests.csrf, csrf: false }),
-      item('Login with a wrong password', 'POST', '/auth/login', { body: '{"email":"{{adminEmail}}","password":"wrong-password"}', tests: tests.badLogin }),
+      item('Login with a wrong password', 'POST', '/auth/login', { body: '{"email":"{{seedAdminEmail}}","password":"wrong-password"}', tests: tests.badLogin }),
     ] },
     { name: 'Student session', item: [
       item('Register', 'POST', '/auth/register', { body: '{"username":"{{username}}","email":"{{email}}","password":"{{password}}"}', tests: tests.registered }),
@@ -262,7 +272,7 @@ const collection = {
     { name: 'Administrator', item: [
       item('Student cannot read admin stats', 'GET', '/admin/stats', { tests: tests.forbidden }),
       item('Change password', 'PATCH', '/users/me/password', { body: '{"currentPassword":"{{password}}","newPassword":"Testpass2"}', tests: tests.password }),
-      item('Login as administrator', 'POST', '/auth/login', { body: '{"email":"{{adminEmail}}","password":"{{adminPassword}}"}', tests: tests.adminLogin }),
+      item('Login as administrator', 'POST', '/auth/login', { body: '{"email":"{{seedAdminEmail}}","password":"{{seedAdminPassword}}"}', tests: tests.adminLogin }),
       item('Admin stats', 'GET', '/admin/stats', { tests: tests.adminStats }),
       item('Admin health', 'GET', '/admin/health', { tests: tests.adminHealth }),
       item('Admin users', 'GET', '/admin/users?page=1&limit=20', { tests: tests.adminUsers }),
