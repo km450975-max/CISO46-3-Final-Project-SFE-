@@ -1,0 +1,12 @@
+process.env.NODE_ENV = 'test';
+process.env.PORT = '0';
+process.env.JWT_SECRET = 'test-secret-test-secret-test-secret-32';
+process.env.JWT_EXPIRES_IN = '1h';
+process.env.CLIENT_ORIGIN = 'http://localhost:5173';
+process.env.BANANA_API_MODE = 'mock';
+process.env.BANANA_API_FALLBACK = 'false';
+process.env.BANANA_API_BASE_URL = 'https://marcconrad.com/uob/banana/api.php';
+process.env.BANANA_API_TIMEOUT_MS = '2000';
+process.env.BCRYPT_ROUNDS = '4';
+process.env.MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/banana_math_test_placeholder';
+process.env.TRUST_PROXY = 'false';
