@@ -31,7 +31,7 @@ export default function LeaderboardPage() {
   if (!data) return <Spinner label="Loading the leaderboard" />;
 
   return (
-    <div className="stack">
+    <div className="stack hall">
       <div className="page-heading">
         <div>
           <p className="eyebrow">Ranked scores</p>

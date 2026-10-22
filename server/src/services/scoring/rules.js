@@ -7,7 +7,8 @@
  * A correct answer scores:
  *   base + speed + streak - hint penalty, with a minimum of 1 point.
  *
- * - base: easy 10, medium 20, hard 30
+ * - base: chosen by the player (10, 20, or 30). If a game has no choice saved,
+ *   easy uses 10, medium 20, and hard 30.
  * - speed: whole seconds remaining × 1 (easy/medium) or × 2 (hard)
  * - streak: 2 points for each correct answer already on the current streak
  *   (the first correct answer in a row has no streak bonus)
@@ -17,6 +18,9 @@
  * Ranked games add points to the player's career total. Practice games do not.
  * One submission is stored per round. A second submission cannot add points.
  */
+
+export const ROUND_CHOICES = [3, 4, 5];
+export const BASE_POINT_CHOICES = [10, 20, 30];
 
 export const SCORING_RULES = {
   roundsPerGame: 10,
@@ -39,13 +43,13 @@ export function getDifficultyRule(difficulty) {
   return rule;
 }
 
-export function calculateScore({ difficulty, remainingSeconds, streakAfterCorrect, hintUsed, correct }) {
+export function calculateScore({ difficulty, remainingSeconds, streakAfterCorrect, hintUsed, correct, basePoints }) {
   if (!correct) {
     return { points: 0, breakdown: { base: 0, speed: 0, streak: 0, hint: 0 } };
   }
 
   const rule = getDifficultyRule(difficulty);
-  const base = rule.basePoints;
+  const base = BASE_POINT_CHOICES.includes(basePoints) ? basePoints : rule.basePoints;
   const speed = Math.max(0, Math.floor(Number(remainingSeconds) || 0)) * rule.speedPointsPerSecond;
   const streak = Math.max(0, Number(streakAfterCorrect) - 1) * SCORING_RULES.streakBonusPerStep;
   const hint = hintUsed ? SCORING_RULES.hintPenalty : 0;

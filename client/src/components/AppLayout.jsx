@@ -6,7 +6,6 @@ import {
   LogOut,
   Menu,
   Settings,
-  Shield,
   Timer,
   Trophy,
   UserRound,
@@ -71,12 +70,6 @@ export default function AppLayout() {
               </NavLink>
             );
           })}
-          {user.role === 'admin' && (
-            <NavLink to="/admin" onClick={() => setOpen(false)}>
-              <Shield size={18} aria-hidden="true" />
-              Admin
-            </NavLink>
-          )}
           <button type="button" className="nav-logout" onClick={logout}>
             <LogOut size={18} aria-hidden="true" />
             Log out

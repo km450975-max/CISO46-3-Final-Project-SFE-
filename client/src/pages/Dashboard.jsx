@@ -43,7 +43,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="stack">
+    <div className="stack hall">
       <div className="page-heading">
         <div>
           <p className="eyebrow">Player dashboard</p>

@@ -101,7 +101,7 @@ async function openRound(session, user) {
   return puzzle;
 }
 
-export async function startGame(user, { difficulty, mode, restart }) {
+export async function startGame(user, { difficulty, mode, restart, totalRounds, basePoints }) {
   const existing = await GameSession.findOne({ user: user._id, status: 'active' });
   if (existing && !restart) {
     return { created: false, ...(await presentSession(existing)) };
@@ -117,7 +117,8 @@ export async function startGame(user, { difficulty, mode, restart }) {
     mode,
     difficulty,
     currentRound: 1,
-    totalRounds: SCORING_RULES.roundsPerGame,
+    totalRounds: totalRounds || SCORING_RULES.roundsPerGame,
+    basePoints: basePoints || getDifficultyRule(difficulty).basePoints,
     currentStreak: mode === 'ranked' ? user.currentStreak : 0,
     bestStreak: mode === 'ranked' ? user.currentStreak : 0,
     status: 'active',
@@ -197,6 +198,7 @@ export async function submitAnswer(user, sessionId, { answer, expired = false })
   const remainingSeconds = Math.max(0, (endsAt - now.getTime()) / 1000);
   const score = calculateScore({
     difficulty: session.difficulty,
+    basePoints: session.basePoints,
     remainingSeconds,
     streakAfterCorrect: newStreak,
     hintUsed: session.hintUsed,
@@ -309,6 +311,16 @@ export async function nextPuzzle(user, sessionId) {
 
   session.currentRound += 1;
   await openRound(session, user);
+  return presentSession(session);
+}
+
+export async function quitGame(user, sessionId) {
+  const session = await loadOwned(user, sessionId);
+  if (session.status === 'active') {
+    session.status = 'abandoned';
+    session.endedAt = new Date();
+    await session.save();
+  }
   return presentSession(session);
 }
 

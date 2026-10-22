@@ -61,7 +61,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="stack narrow">
+    <div className="stack narrow hall">
       <div className="page-heading">
         <div>
           <p className="eyebrow">Account</p>

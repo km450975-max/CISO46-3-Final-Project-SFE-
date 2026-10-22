@@ -7,6 +7,7 @@
     "install:all": "npm install --prefix server && npm install --prefix client",
     "dev": "concurrently -n server,client -c yellow,blue \"npm run dev --prefix server\" \"npm run dev --prefix client\"",
     "test": "npm test --prefix server && npm test --prefix client",
+    "postman": "node postman/build-collection.mjs && npx --yes newman run postman/banana-math.postman_collection.json -e postman/local.postman_environment.json --timeout-request 30000",
     "start": "npm start --prefix server"
   },
   "devDependencies": {

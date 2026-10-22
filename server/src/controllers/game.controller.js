@@ -4,6 +4,7 @@ import {
   getActiveGame,
   getGame,
   nextPuzzle,
+  quitGame,
   requestHint,
   startGame,
   submitAnswer,
@@ -41,5 +42,10 @@ export const hint = asyncHandler(async (req, res) => {
 
 export const next = asyncHandler(async (req, res) => {
   const data = await nextPuzzle(req.user, req.validated.params.id);
+  res.json({ success: true, data });
+});
+
+export const quit = asyncHandler(async (req, res) => {
+  const data = await quitGame(req.user, req.validated.params.id);
   res.json({ success: true, data });
 });

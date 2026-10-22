@@ -29,7 +29,7 @@ export default function HistoryPage() {
   if (!data) return <Spinner label="Loading your games" />;
 
   return (
-    <div className="stack">
+    <div className="stack hall">
       <div className="page-heading">
         <div>
           <p className="eyebrow">Progress</p>

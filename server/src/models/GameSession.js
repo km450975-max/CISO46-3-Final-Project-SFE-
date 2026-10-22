@@ -26,6 +26,12 @@ const gameSessionSchema = new mongoose.Schema(
     totalRounds: {
       type: Number,
       default: SCORING_RULES.roundsPerGame,
+      min: 1,
+    },
+    basePoints: {
+      type: Number,
+      default: 10,
+      min: 1,
     },
     score: {
       type: Number,

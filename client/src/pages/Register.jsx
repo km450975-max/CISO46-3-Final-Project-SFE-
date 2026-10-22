@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import api, { getErrorMessage, getFieldErrors } from '../services/api.js';
 import Alert from '../components/Alert.jsx';
@@ -64,10 +64,13 @@ export function AuthScreen({ title, subtitle, footer, children }) {
   return (
     <div className="auth-screen">
       <div className="auth-card">
-        <Link to="/" className="brand">
-          <span className="brand-mark" aria-hidden="true" />
-          Banana Math
-        </Link>
+        <header className="marquee">
+          <Link to="/">Banana Math</Link>
+        </header>
+        <nav className="auth-tabs" aria-label="Account">
+          <NavLink to="/login">Log in</NavLink>
+          <NavLink to="/register">Sign up</NavLink>
+        </nav>
         <h1>{title}</h1>
         <p className="lede">{subtitle}</p>
         {children}

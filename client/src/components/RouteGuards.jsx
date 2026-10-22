@@ -1,5 +1,6 @@
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
+import NotFoundPage from '../pages/NotFound.jsx';
 import Spinner from './Spinner.jsx';
 
 export function ProtectedRoute() {
@@ -17,7 +18,8 @@ export function GuestRoute() {
 }
 
 export function AdminRoute() {
-  const { user } = useAuth();
-  if (user?.role !== 'admin') return <Navigate to="/dashboard" replace />;
+  const { user, loading } = useAuth();
+  if (loading) return <div className="page-center"><Spinner label="Loading" /></div>;
+  if (!user || user.role !== 'admin') return <NotFoundPage />;
   return <Outlet />;
 }

@@ -8,6 +8,7 @@ export function serializeGame(session, now = new Date()) {
     id: session._id,
     mode: session.mode,
     difficulty: session.difficulty,
+    basePoints: session.basePoints,
     currentRound: session.currentRound,
     totalRounds: session.totalRounds,
     score: session.score,

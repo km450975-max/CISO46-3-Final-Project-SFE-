@@ -81,12 +81,13 @@ The server tests cover registration, bad passwords, invalid login, protected rou
 | `npm run dev` | `client` | Vite |
 | `npm run build` | `client` | Production bundle |
 | `npm test` | `client` | Formatter tests |
+| `npm run postman` | project root | Newman checks for every API route. The API must already be running |
 
 ## Application map
 
-Players can open the landing page, register, log in, and use the dashboard, game, leaderboard, profile, history, and settings. Administrators also get an admin page. Private pages redirect to login. The admin page redirects students away, and the API rejects them as well.
+Players open the splash screen, then register or log in, and use the dashboard, game, leaderboard, profile, history, and settings. Private pages redirect to login. The admin screen has no menu link. A student who opens `/admin` sees the ordinary not-found page. The API still returns 403 for a signed-in student.
 
-A game is 10 rounds. Ranked mode updates the career score. Practice mode does not. Scoring, events, identity, and the HTTP contract are described in:
+A game can be 3, 4, or 5 rounds, with base points of 10, 20, or 30. Omitting those fields on `POST /games/start` still defaults to 10 rounds and the difficulty's base points. Ranked mode updates the career score. Practice mode does not. Scoring, events, identity, and the HTTP contract are described in:
 
 - [docs/architecture.md](docs/architecture.md)
 - [docs/api-documentation.md](docs/api-documentation.md)

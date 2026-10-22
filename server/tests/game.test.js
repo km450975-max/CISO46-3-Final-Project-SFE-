@@ -228,6 +228,37 @@ describe('puzzle play', () => {
     expect(image.status).toBe(404);
   });
 
+  it('uses the chosen round count and base points, then quit closes the game', async () => {
+    const agent = request.agent(app);
+    await register(agent, 'quitter');
+    const started = await startGame(agent, {
+      difficulty: 'hard',
+      mode: 'ranked',
+      totalRounds: 3,
+      basePoints: 30,
+    });
+    expect(started.status).toBe(201);
+    expect(started.body.data.game.totalRounds).toBe(3);
+    expect(started.body.data.game.basePoints).toBe(30);
+
+    const puzzle = await Puzzle.findById(started.body.data.puzzle.id);
+    const submitted = await agent
+      .post(`/api/v1/games/${started.body.data.game.id}/submit`)
+      .set('X-Requested-With', 'XMLHttpRequest')
+      .send({ answer: puzzle.solution });
+    expect(submitted.body.data.breakdown.base).toBe(30);
+
+    const quit = await agent
+      .post(`/api/v1/games/${started.body.data.game.id}/quit`)
+      .set('X-Requested-With', 'XMLHttpRequest')
+      .send({});
+    expect(quit.status).toBe(200);
+    expect(quit.body.data.game.status).toBe('abandoned');
+
+    const active = await agent.get('/api/v1/games/active');
+    expect(active.body.data.game).toBeNull();
+  });
+
   it('gives a hint that is not the solution', async () => {
     const agent = request.agent(app);
     await register(agent, 'hinter');

@@ -29,12 +29,11 @@ export default function ProfilePage() {
   if (!profile) return <Spinner label="Loading your profile" />;
 
   return (
-    <div className="stack">
+    <div className="stack hall">
       <div className="page-heading">
         <div className="identity">
           <Avatar name={profile.displayName} avatarKey={profile.avatarKey} size={72} />
           <div>
-            <p className="eyebrow">{profile.role}</p>
             <h1>{profile.displayName}</h1>
             <p className="lede">@{profile.username} · joined {formatDate(profile.createdAt)}</p>
           </div>

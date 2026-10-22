@@ -2,15 +2,17 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api, { getErrorMessage, mediaUrl } from '../services/api.js';
 import { useAuth } from '../context/AuthContext.jsx';
-import Alert from '../components/Alert.jsx';
 import Spinner from '../components/Spinner.jsx';
 import { formatClock } from '../utils/format.js';
 
 const DIFFICULTIES = [
-  { id: 'easy', label: 'Easy', detail: '60 seconds · 10 base points' },
-  { id: 'medium', label: 'Medium', detail: '45 seconds · 20 base points' },
-  { id: 'hard', label: 'Hard', detail: '30 seconds · 30 base points' },
+  { id: 'easy', label: 'Easy', detail: '60 second clock' },
+  { id: 'medium', label: 'Medium', detail: '45 second clock' },
+  { id: 'hard', label: 'Hard', detail: '30 second clock' },
 ];
+
+const ROUND_CHOICES = [3, 4, 5];
+const BASE_POINT_CHOICES = [10, 20, 30];
 
 export default function GamePage() {
   const { setUser, user } = useAuth();
@@ -22,6 +24,8 @@ export default function GamePage() {
   const [busy, setBusy] = useState(false);
   const [difficulty, setDifficulty] = useState('easy');
   const [mode, setMode] = useState('ranked');
+  const [totalRounds, setTotalRounds] = useState(5);
+  const [basePoints, setBasePoints] = useState(10);
   const [remaining, setRemaining] = useState(null);
   const [imageError, setImageError] = useState(false);
   const expireLock = useRef(false);
@@ -110,7 +114,13 @@ export default function GamePage() {
     setNotice('');
     setAnswer('');
     try {
-      const response = await api.post('/games/start', { difficulty, mode, restart });
+      const response = await api.post('/games/start', {
+        difficulty,
+        mode,
+        restart,
+        totalRounds,
+        basePoints,
+      });
       applyView(response.data.data);
     } catch (err) {
       setError(getErrorMessage(err));
@@ -164,43 +174,79 @@ export default function GamePage() {
     }
   }
 
+  async function quit() {
+    if (!view?.game) return;
+    setBusy(true);
+    setError('');
+    try {
+      await api.post(`/games/${view.game.id}/quit`);
+      setView(null);
+      setNotice('');
+      setAnswer('');
+      setRemaining(null);
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   if (loading) return <Spinner label="Loading the puzzle" />;
 
   if (!view) {
     return (
-      <div className="stack narrow">
-        <div className="page-heading">
-          <div>
-            <p className="eyebrow">New game</p>
-            <h1>Choose a challenge</h1>
-            <p className="lede">Difficulty changes the timer and the points. The Banana API itself does not label puzzles as easy or hard.</p>
-          </div>
-        </div>
-        <Alert>{error}</Alert>
-        <fieldset className="choice-grid">
-          <legend>Difficulty</legend>
-          {DIFFICULTIES.map((item) => (
-            <label key={item.id} className={difficulty === item.id ? 'choice selected' : 'choice'}>
-              <input type="radio" name="difficulty" value={item.id} checked={difficulty === item.id} onChange={() => setDifficulty(item.id)} />
-              <strong>{item.label}</strong>
-              <span>{item.detail}</span>
+      <div className="machine machine-setup">
+        <header className="marquee">
+          <h1>Choose a challenge</h1>
+          <span>Banana Math</span>
+        </header>
+        {error && <p className="deck-alert" role="alert">{error}</p>}
+        <div className="setup-grid">
+          <fieldset className="choice-grid">
+            <legend>Clock</legend>
+            {DIFFICULTIES.map((item) => (
+              <label key={item.id} className={difficulty === item.id ? 'choice selected' : 'choice'}>
+                <input type="radio" name="difficulty" value={item.id} checked={difficulty === item.id} onChange={() => setDifficulty(item.id)} />
+                <strong>{item.label}</strong>
+                <span>{item.detail}</span>
+              </label>
+            ))}
+          </fieldset>
+          <fieldset className="choice-grid">
+            <legend>Rounds</legend>
+            {ROUND_CHOICES.map((count) => (
+              <label key={count} className={totalRounds === count ? 'choice selected' : 'choice'}>
+                <input type="radio" name="rounds" value={count} checked={totalRounds === count} onChange={() => setTotalRounds(count)} />
+                <strong>{count}</strong>
+                <span>rounds</span>
+              </label>
+            ))}
+          </fieldset>
+          <fieldset className="choice-grid">
+            <legend>Base points</legend>
+            {BASE_POINT_CHOICES.map((points) => (
+              <label key={points} className={basePoints === points ? 'choice selected' : 'choice'}>
+                <input type="radio" name="basePoints" value={points} checked={basePoints === points} onChange={() => setBasePoints(points)} />
+                <strong>{points}</strong>
+                <span>points</span>
+              </label>
+            ))}
+          </fieldset>
+          <fieldset className="choice-grid two">
+            <legend>Mode</legend>
+            <label className={mode === 'ranked' ? 'choice selected' : 'choice'}>
+              <input type="radio" name="mode" value="ranked" checked={mode === 'ranked'} onChange={() => setMode('ranked')} />
+              <strong>Ranked</strong>
+              <span>Counts on the board</span>
             </label>
-          ))}
-        </fieldset>
-        <fieldset className="choice-grid two">
-          <legend>Mode</legend>
-          <label className={mode === 'ranked' ? 'choice selected' : 'choice'}>
-            <input type="radio" name="mode" value="ranked" checked={mode === 'ranked'} onChange={() => setMode('ranked')} />
-            <strong>Ranked</strong>
-            <span>Points count on the leaderboard.</span>
-          </label>
-          <label className={mode === 'practice' ? 'choice selected' : 'choice'}>
-            <input type="radio" name="mode" value="practice" checked={mode === 'practice'} onChange={() => setMode('practice')} />
-            <strong>Practice</strong>
-            <span>Play without changing your rank.</span>
-          </label>
-        </fieldset>
-        <button className="button button-primary" type="button" onClick={() => start(false)} disabled={busy}>Start game</button>
+            <label className={mode === 'practice' ? 'choice selected' : 'choice'}>
+              <input type="radio" name="mode" value="practice" checked={mode === 'practice'} onChange={() => setMode('practice')} />
+              <strong>Practice</strong>
+              <span>Rank stays put</span>
+            </label>
+          </fieldset>
+        </div>
+        <button className="arcade-btn start-btn" type="button" onClick={() => start(false)} disabled={busy}>Start game</button>
       </div>
     );
   }
@@ -210,75 +256,94 @@ export default function GamePage() {
   const lowTime = remaining !== null && remaining <= 10000;
 
   return (
-    <div className="stack">
-      <div className="page-heading">
+    <div className="machine machine-play">
+      <header className="marquee">
+        <h1>Banana Math</h1>
+        <span>{view.game.mode} · {view.game.difficulty} · career {user.totalScore}</span>
+      </header>
+      <div className="scoreboard">
         <div>
-          <p className="eyebrow">{view.game.mode} · {view.game.difficulty}</p>
-          <h1>Round {view.game.currentRound} of {view.game.totalRounds}</h1>
+          <span>Round</span>
+          <strong>{view.game.currentRound}/{view.game.totalRounds}</strong>
         </div>
-        <div className={`timer ${lowTime ? 'timer-low' : ''}`} aria-live="polite" aria-atomic="true">
-          {answered || finished ? 'Answered' : formatClock(remaining ?? 0)}
+        <div>
+          <span>Score</span>
+          <strong>{view.game.score}</strong>
+        </div>
+        <div>
+          <span>Streak</span>
+          <strong>{view.game.currentStreak}</strong>
+        </div>
+        <div>
+          <span>Base</span>
+          <strong>{view.game.basePoints}</strong>
+        </div>
+        <div className={lowTime ? 'timer-low' : undefined}>
+          <span>Time</span>
+          <strong aria-live="polite">{answered || finished ? 'DONE' : formatClock(remaining ?? 0)}</strong>
         </div>
       </div>
-      <Alert>{error}</Alert>
-      {notice && <Alert tone="success">{notice}</Alert>}
-      {view.puzzle?.simulated && (
-        <Alert tone="info">This puzzle is simulated local data. Switch BANANA_API_MODE to live to use Banana API images.</Alert>
-      )}
 
-      <section className="play-grid">
-        <article className="card puzzle-card">
-          {view.puzzle && (
-            <img
-              src={mediaUrl(view.puzzle.imagePath)}
-              alt="Math puzzle. Type the integer the picture is asking for."
-              onError={() => setImageError(true)}
-            />
-          )}
-          {imageError && <Alert>The puzzle image could not be displayed. The round timer is still running on the server.</Alert>}
+      <div className="play-bay">
+        <section className="crt">
+          <div className="crt-glass">
+            {view.puzzle && (
+              <img
+                src={mediaUrl(view.puzzle.imagePath)}
+                alt="Math puzzle. Type the integer the picture is asking for."
+                onError={() => setImageError(true)}
+              />
+            )}
+            {imageError && <p className="deck-alert">The puzzle picture did not load. The timer is still running.</p>}
+          </div>
           <div className="progress" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(view.game.progress * 100)} aria-label="Game progress">
             <span style={{ width: `${Math.round(view.game.progress * 100)}%` }} />
           </div>
-        </article>
-        <article className="card stack">
-          <p>Session score <strong>{view.game.score}</strong> · streak <strong>{view.game.currentStreak}</strong> · career score <strong>{user.totalScore}</strong></p>
-          {view.game.hintText && <p className="hint">{view.game.hintText} Using a hint costs 5 points if the answer is correct.</p>}
+        </section>
+
+        <section className="control-deck">
+          {error && <p className="deck-alert" role="alert">{error}</p>}
+          {notice && <p className="deck-note">{notice}</p>}
+          {view.puzzle?.simulated && <p className="deck-note">Simulated puzzle. Live mode uses Banana API pictures.</p>}
+          {view.game.hintText && <p className="deck-note">{view.game.hintText} Hint costs 5 points if you are correct.</p>}
           {answered ? (
             <div className="feedback">
               <h2>{view.attempt.timedOut ? 'Time expired' : view.attempt.correct ? 'Correct' : 'Incorrect'}</h2>
-              <p>The answer was {view.attempt.solution}. You scored {view.attempt.pointsAwarded} points.</p>
+              <p>Answer {view.attempt.solution} · {view.attempt.pointsAwarded} pts</p>
               {view.attempt.breakdown && (
-                <p className="field-help">
-                  Base {view.attempt.breakdown.base}, speed {view.attempt.breakdown.speed}, streak {view.attempt.breakdown.streak}, hint {view.attempt.breakdown.hint}.
+                <p className="breakdown">
+                  Base {view.attempt.breakdown.base} · speed {view.attempt.breakdown.speed} · streak {view.attempt.breakdown.streak} · hint {view.attempt.breakdown.hint}
                 </p>
               )}
               {view.unlockedAchievements?.length > 0 && (
-                <p>New badge: {view.unlockedAchievements.map((item) => item.title).join(', ')}</p>
+                <p className="breakdown">Badge: {view.unlockedAchievements.map((item) => item.title).join(', ')}</p>
               )}
-              {finished ? (
-                <div className="button-row">
-                  <Link className="button button-primary" to="/history">Review history</Link>
-                  <button className="button button-ghost" type="button" onClick={() => setView(null)}>Play again</button>
-                </div>
-              ) : (
-                <button className="button button-primary" type="button" onClick={next} disabled={busy}>Next puzzle</button>
-              )}
+              <div className="button-row">
+                {finished ? (
+                  <>
+                    <Link className="arcade-btn" to="/history">History</Link>
+                    <button className="arcade-btn arcade-btn-dim" type="button" onClick={() => setView(null)}>Play again</button>
+                  </>
+                ) : (
+                  <button className="arcade-btn" type="button" onClick={next} disabled={busy}>Next puzzle</button>
+                )}
+              </div>
             </div>
           ) : (
-            <form onSubmit={submit}>
+            <form className="answer-dock" onSubmit={submit}>
               <label htmlFor="answer">Your answer</label>
               <input id="answer" inputMode="numeric" autoComplete="off" value={answer} onChange={(event) => setAnswer(event.target.value)} required />
               <div className="button-row">
-                <button className="button button-primary" type="submit" disabled={busy}>Submit answer</button>
-                <button className="button button-ghost" type="button" onClick={hint} disabled={busy || view.game.hintUsed}>Hint</button>
+                <button className="arcade-btn" type="submit" disabled={busy}>Enter</button>
+                <button className="arcade-btn arcade-btn-dim" type="button" onClick={hint} disabled={busy || view.game.hintUsed}>Hint</button>
               </div>
             </form>
           )}
           {view.game.status === 'active' && !finished && (
-            <button className="text-button" type="button" onClick={() => start(true)} disabled={busy}>Abandon and start over</button>
+            <button className="arcade-btn arcade-btn-stop" type="button" onClick={quit} disabled={busy}>Quit game</button>
           )}
-        </article>
-      </section>
+        </section>
+      </div>
     </div>
   );
 }

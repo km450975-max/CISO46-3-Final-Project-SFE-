@@ -41,6 +41,8 @@ export const startGameSchema = z.object({
     difficulty: z.enum(['easy', 'medium', 'hard']),
     mode: z.enum(['ranked', 'practice']).default('ranked'),
     restart: z.boolean().optional().default(false),
+    totalRounds: z.union([z.literal(3), z.literal(4), z.literal(5)]).optional(),
+    basePoints: z.union([z.literal(10), z.literal(20), z.literal(30)]).optional(),
   }),
   query: emptyQuery,
   params: z.object({}).strip(),
